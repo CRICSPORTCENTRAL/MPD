@@ -6,8 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TG - @CRICSPORTCENTRAL</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.1.1/shaka-player.ui.min.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.1.1/controls.min.css" crossorigin="anonymous" />
+  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
   <style>
     #video {
       width: 100%;
@@ -28,63 +27,44 @@
 
   <script>
     // Automatically fetch the MPD URL from the webpage URL or define it here
-    const mpdUrl = window.location.href.includes("mpd") ? window.location.href : "https://vkvsd14.okcdn.ru/cmaf/7381061929703/sig/pVZefddHqS8/srcIp/65.2.116.40/urls/185.226.53.64/expires/1733832216577/clientType/13/srcAg/CHROME/fromCache/1/mid/8776469523431/id/7381061929703/get/dash_8776469523431.bFDIKY46s2E.mpd"; // Update default MPD URL
+    const mpdUrl = window.location.href.includes("mpd") ? window.location.href : "https://vkvsd14.okcdn.ru/cmaf/7381061929703/sig/pVZefddHqS8/srcIp/65.2.116.40/urls/185.226.53.64/expires/1733832216577/clientType/13/srcAg/CHROME/fromCache/1/mid/8776469523431/id/7381061929703/get/dash_8776469523431.bFDIKY46s2E.mpd"; // Replace with your MPD URL if needed
 
     const video = document.getElementById('video');
     const qualitySelect = document.getElementById('qualitySelect');
 
     if (mpdUrl) {
-      const player = new shaka.Player(video);
+      const player = dashjs.MediaPlayer().create();
+      player.initialize(video, mpdUrl, true);
 
-      // Configure DRM if needed (optional)
-      player.configure({
-        drm: {
-          clearKeys: {
-            "your-clear-key-id": "your-clear-key"
+      // This event listener listens for the availability of quality levels in the DASH manifest
+      player.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function () {
+        const manifest = player.getMetricsFor('video');
+        const qualityLevels = player.getQualityFor('video');
+        const availableQualities = player.getAvailableQualityLevels('video');
+
+        // Populate quality options
+        availableQualities.forEach((qualityIndex) => {
+          const option = document.createElement('option');
+          option.value = qualityIndex;
+          const bitrate = manifest[qualityIndex] ? manifest[qualityIndex].bitrate : 0;
+          option.textContent = `${qualityIndex}p (${Math.round(bitrate / 1000)} kbps)`;
+          qualitySelect.appendChild(option);
+        });
+
+        // Enable Auto Quality Option
+        qualitySelect.addEventListener('change', function () {
+          const selectedQuality = qualitySelect.value;
+          if (selectedQuality === "auto") {
+            player.setAutoPlay(true);
+            player.setQualityFor('video', -1); // Set to automatic quality
+          } else {
+            player.setAutoPlay(false);
+            player.setQualityFor('video', parseInt(selectedQuality)); // Set selected quality manually
           }
-        }
-      });
-
-      // Handle error events
-      player.addEventListener('error', onPlayerError);
-
-      // Load the MPD URL
-      player.load(mpdUrl).then(function () {
-        console.log('Video loaded successfully');
-
-        // Fetch available quality options after the manifest is loaded
-        const manifest = player.getManifest();
-        const videoTracks = manifest.videoTracks;
-        if (videoTracks) {
-          // Populate quality options
-          videoTracks.forEach((track, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = `${track.height}p (${Math.round(track.bitrate / 1000)} kbps)`;
-            qualitySelect.appendChild(option);
-          });
-        }
-      }).catch(onPlayerError);
-
-      // Listen for quality selection changes
-      qualitySelect.addEventListener('change', function () {
-        const selectedQuality = qualitySelect.value;
-        if (selectedQuality === "auto") {
-          player.getConfiguration().abr.enabled = true; // Auto quality
-        } else {
-          player.getConfiguration().abr.enabled = false; // Disable auto quality
-          player.selectVideoStream(parseInt(selectedQuality)); // Set selected quality
-        }
+        });
       });
     } else {
-      // If no MPD URL is found or set, show an error message
       document.body.innerHTML = '<p style="color: red; text-align: center;">No MPD URL provided. Please update the script with a valid URL.</p>';
-    }
-
-    // Error handler for Shaka Player
-    function onPlayerError(event) {
-      console.error('Error code', event.detail.code, 'object', event.detail);
-      document.body.innerHTML = `<p style="color: red; text-align: center;">Error loading video: ${event.detail.message}</p>`;
     }
 
   </script>
