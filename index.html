@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TG - @CRICSPORTCENTRAL</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.1.1/shaka-player.ui.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.1.1/controls.min.css" crossorigin="anonymous" />
+  <style>
+    #video {
+      width: 100%;
+    }
+
+    select {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <video id="video" controls autoplay></video>
+
+  <select id="qualitySelect">
+    <option value="auto">Auto</option>
+  </select>
+
+  <script>
+    // Automatically fetch the MPD URL from the webpage URL or define it here
+    const mpdUrl = window.location.href.includes("mpd") ? window.location.href : "https://vkvsd14.okcdn.ru/cmaf/7381061929703/sig/pVZefddHqS8/srcIp/65.2.116.40/urls/185.226.53.64/expires/1733832216577/clientType/13/srcAg/CHROME/fromCache/1/mid/8776469523431/id/7381061929703/get/dash_8776469523431.bFDIKY46s2E.mpd"; // Update default MPD URL
+
+    const video = document.getElementById('video');
+    const qualitySelect = document.getElementById('qualitySelect');
+
+    if (mpdUrl) {
+      const player = new shaka.Player(video);
+
+      // Configure DRM if needed (optional)
+      player.configure({
+        drm: {
+          clearKeys: {
+            "your-clear-key-id": "your-clear-key"
+          }
+        }
+      });
+
+      // Handle error events
+      player.addEventListener('error', onPlayerError);
+
+      // Load the MPD URL
+      player.load(mpdUrl).then(function () {
+        console.log('Video loaded successfully');
+
+        // Fetch available quality options after the manifest is loaded
+        const manifest = player.getManifest();
+        const videoTracks = manifest.videoTracks;
+        if (videoTracks) {
+          // Populate quality options
+          videoTracks.forEach((track, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${track.height}p (${Math.round(track.bitrate / 1000)} kbps)`;
+            qualitySelect.appendChild(option);
+          });
+        }
+      }).catch(onPlayerError);
+
+      // Listen for quality selection changes
+      qualitySelect.addEventListener('change', function () {
+        const selectedQuality = qualitySelect.value;
+        if (selectedQuality === "auto") {
+          player.getConfiguration().abr.enabled = true; // Auto quality
+        } else {
+          player.getConfiguration().abr.enabled = false; // Disable auto quality
+          player.selectVideoStream(parseInt(selectedQuality)); // Set selected quality
+        }
+      });
+    } else {
+      // If no MPD URL is found or set, show an error message
+      document.body.innerHTML = '<p style="color: red; text-align: center;">No MPD URL provided. Please update the script with a valid URL.</p>';
+    }
+
+    // Error handler for Shaka Player
+    function onPlayerError(event) {
+      console.error('Error code', event.detail.code, 'object', event.detail);
+      document.body.innerHTML = `<p style="color: red; text-align: center;">Error loading video: ${event.detail.message}</p>`;
+    }
+
+  </script>
+
+  <script>
+    if (confirm("Join Our Telegram Channel @CRICSPORTCENTRAL For More Links")) {
+      window.location.href = "https://t.me/CRICSPORTCENTRAL";
+    }
+  </script>
+
+  <div style="background-color: #0074d9; text-align: center; padding: 10px;">
+    <a href="https://telegram.me/CRICSPORTCENTRAL" target="_blank">
+      <button id="joinTelegramButton" style="background-color: #fff; color: #0074d9; border: 2px solid #0074d9; padding: 5px 10px;">
+        Join Telegram
+      </button>
+    </a>
+  </div>
+</body>
+
+</html>
